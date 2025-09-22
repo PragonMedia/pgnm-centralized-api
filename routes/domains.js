@@ -24,7 +24,6 @@ router.post("/", async (req, res) => {
     }
 
     const cleanDomain = extractDomain(domain);
-    const db = getDatabase();
 
     // Insert or update domain in SQLite
     const insertQuery = `
