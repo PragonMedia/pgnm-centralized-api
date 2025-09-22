@@ -70,11 +70,20 @@ function isSpyDomain(referrerDomain) {
  * @returns {Object} - Analysis result with domain and spy status
  */
 function analyzeReferrer(referrer) {
+  // If no referrer (user typed URL directly), mark as spy (past: true)
+  if (!referrer) {
+    return {
+      referrer: null,
+      referrerDomain: null,
+      isSpy: true, // No referrer = past: true
+    };
+  }
+
   const referrerDomain = extractReferrerDomain(referrer);
   const isSpy = isSpyDomain(referrerDomain);
 
   return {
-    referrer: referrer || null,
+    referrer: referrer,
     referrerDomain: referrerDomain,
     isSpy: isSpy,
   };

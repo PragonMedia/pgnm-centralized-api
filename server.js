@@ -16,7 +16,7 @@ const corsOptions = {
     "http://127.0.0.1:5502", // Your frontend origin
     "http://localhost:5502", // Alternative localhost
     "http://127.0.0.1:3000", // Alternative port
-    "http://localhost:3000", // Alternative port
+    "http://localhost:3000", // Alternative portstatus
   ],
   credentials: true, // Allow credentials
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
