@@ -17,6 +17,7 @@ const corsOptions = {
     "http://localhost:5502", // Alternative localhost
     "http://127.0.0.1:3000", // Alternative port
     "http://localhost:3000", // Alternative portstatus
+    "mediplanfinder.com",
   ],
   credentials: true, // Allow credentials
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
