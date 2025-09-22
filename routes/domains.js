@@ -171,4 +171,103 @@ router.get("/", async (req, res) => {
   }
 });
 
+// PUT /api/domains/:id - Update domain and campaign ID
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { domain, campaignID } = req.body;
+
+    // Validate required fields
+    if (!domain || !campaignID) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        message: "Both domain and campaignID are required",
+      });
+    }
+
+    const cleanDomain = extractDomain(domain);
+
+    // Update domain in SQLite
+    const updateQuery = `
+      UPDATE domains 
+      SET domain = ?, campaignID = ?, updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+
+    db.run(updateQuery, [cleanDomain, campaignID, id], function (err) {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          error: "Database error",
+          message: "Failed to update domain information",
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          error: "Domain not found",
+          message: `No domain found with ID: ${id}`,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Domain and campaign ID updated successfully",
+        data: {
+          id: parseInt(id),
+          domain: cleanDomain,
+          campaignID: campaignID,
+        },
+      });
+    });
+  } catch (error) {
+    console.error("Error in PUT /domains/:id:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "An unexpected error occurred",
+    });
+  }
+});
+
+// DELETE /api/domains/:id - Delete domain and campaign ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delete domain from SQLite
+    const deleteQuery = "DELETE FROM domains WHERE id = ?";
+
+    db.run(deleteQuery, [id], function (err) {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({
+          error: "Database error",
+          message: "Failed to delete domain information",
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          error: "Domain not found",
+          message: `No domain found with ID: ${id}`,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Domain and campaign ID deleted successfully",
+        data: {
+          id: parseInt(id),
+        },
+      });
+    });
+  } catch (error) {
+    console.error("Error in DELETE /domains/:id:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "An unexpected error occurred",
+    });
+  }
+});
+
 module.exports = router;
