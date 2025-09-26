@@ -62,20 +62,17 @@ router.post("/", async (req, res) => {
 // POST /api/domains/test - Search domain and trigger redTrack (updated for frontend POST request)
 router.post("/test", async (req, res) => {
   try {
-    const { domain } = req.body;
+    const { domain, query = "", referrer } = req.body;
+    // Use referrer from body first, then fall back to headers
+    const finalReferrer = referrer || req.get("Referer") || req.get("Referrer");
+    const referrerAnalysis = analyzeReferrer(finalReferrer);
 
-    // Get referrer from request headers and analyze it
-    const referrer = req.get("Referer") || req.get("Referrer");
-    const referrerAnalysis = analyzeReferrer(referrer);
-
-    // Log referrer information for debugging
     console.log(
       `Referrer: ${referrerAnalysis.referrer || "none"} -> Domain: ${
         referrerAnalysis.referrerDomain || "none"
       } -> Is Spy: ${referrerAnalysis.isSpy}`
     );
 
-    // Validate required field
     if (!domain) {
       return res.status(400).json({
         error: "Missing required field",
@@ -84,13 +81,6 @@ router.post("/test", async (req, res) => {
     }
 
     const cleanDomain = extractDomain(domain);
-
-    // Log the domain extraction for debugging
-    console.log(
-      `Searching for domain: "${domain}" -> extracted: "${cleanDomain}"`
-    );
-
-    // Search for domain in SQLite database
     const selectQuery = "SELECT * FROM domains WHERE domain = ?";
 
     db.get(selectQuery, [cleanDomain], async (err, row) => {
@@ -110,8 +100,19 @@ router.post("/test", async (req, res) => {
       }
 
       try {
-        // Trigger redTrack with the domain and campaign ID
-        const rtkcid = await triggerRedTrack(row.domain, row.campaignID);
+        // Extract user agent and IP
+        const ua = req.headers["user-agent"] || "";
+        const ip = req.headers["x-forwarded-for"] || req.ip || "";
+
+        console.log(`Request details - UA: ${ua}, IP: ${ip}, Query: ${query}`);
+
+        const rtkcid = await triggerRedTrack(
+          row.domain,
+          row.campaignID,
+          query,
+          ua,
+          ip
+        );
 
         res.json({
           success: true,
@@ -119,7 +120,7 @@ router.post("/test", async (req, res) => {
           data: {
             domain: row.domain,
             rtkcid: rtkcid,
-            past: referrerAnalysis.isSpy, // true if referrer is a spy domain, false otherwise
+            past: referrerAnalysis.isSpy,
           },
         });
       } catch (redTrackError) {

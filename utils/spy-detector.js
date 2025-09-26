@@ -52,35 +52,55 @@ function extractReferrerDomain(referrer) {
 /**
  * Checks if a referrer domain is in the spy domains list
  * @param {string} referrerDomain - The referrer domain to check
+ * @param {string} referrerUrl - The full referrer URL to check for path-based matching
  * @returns {boolean} - True if the domain is a spy domain
  */
-function isSpyDomain(referrerDomain) {
+function isSpyDomain(referrerDomain, referrerUrl = null) {
   if (!referrerDomain) return false;
+
   return SPY_DOMAINS.some((spyDomain) => {
-    // Exact match or subdomain match
-    return (
-      referrerDomain === spyDomain || referrerDomain.endsWith("." + spyDomain)
-    );
+    // Check for exact domain match or subdomain match
+    const domainMatch =
+      referrerDomain === spyDomain || referrerDomain.endsWith("." + spyDomain);
+
+    // Check for path-based matching (e.g., facebook.com/ads/library)
+    let pathMatch = false;
+    if (referrerUrl && spyDomain.includes("/")) {
+      try {
+        const spyUrl = new URL(
+          spyDomain.startsWith("http") ? spyDomain : `https://${spyDomain}`
+        );
+        const referrerUrlObj = new URL(referrerUrl);
+        pathMatch =
+          spyUrl.hostname === referrerUrlObj.hostname &&
+          referrerUrlObj.pathname.startsWith(spyUrl.pathname);
+      } catch (error) {
+        // If URL parsing fails, fall back to simple string matching
+        pathMatch = referrerUrl.includes(spyDomain);
+      }
+    }
+
+    return domainMatch || pathMatch;
   });
 }
 
 /**
  * Analyzes referrer and determines if it's a spy
- * @param {string} referrer - The referrer URL from request headers
+ * @param {string} referrer - The referrer URL from request headers or body
  * @returns {Object} - Analysis result with domain and spy status
  */
 function analyzeReferrer(referrer) {
-  // If no referrer (user typed URL directly), mark as spy (past: true)
-  if (!referrer) {
+  // If no referrer or "direct", mark as spy (past: true)
+  if (!referrer || referrer === "direct") {
     return {
-      referrer: null,
+      referrer: referrer || null,
       referrerDomain: null,
-      isSpy: true, // No referrer = past: true
+      isSpy: true, // No referrer or "direct" = past: true
     };
   }
 
   const referrerDomain = extractReferrerDomain(referrer);
-  const isSpy = isSpyDomain(referrerDomain);
+  const isSpy = isSpyDomain(referrerDomain, referrer);
 
   return {
     referrer: referrer,
